@@ -36,21 +36,68 @@ impl SinglyLinkedList {
         self.first.is_none()
     }
 
+    fn find_last_node(&mut self) -> Option<&mut Box<Node>> {
+        let mut current = &mut self.first;
+
+        while let Some(node) = current {
+            if node.next.is_none() {
+                return Some(node);
+            }
+
+            current = &mut node.next;
+        }
+        None
+    }
+
+    fn find_before_last(&mut self) -> Option<&mut Box<Node>> {
+        let mut current_node = &mut self.first;
+
+        while let Some(node) = current_node {
+            if let Some(next_node) = &mut node.next {
+                if next_node.next.is_none() {
+                    return Some(node);
+                }
+            }
+            current_node = &mut node.next;
+        }
+        None
+    }
+
+    fn find_node(&mut self, given_data: &str) -> Option<&mut Box<Node>> {
+        let mut current_node = &mut self.first;
+
+        while let Some(node) = current_node {
+            if node.data == given_data {
+                return Some(node); // Return early after inserting the new node
+            }
+            current_node = &mut node.next;
+        }
+        None
+    }
+
+    fn find_previous_node(&mut self, given_data: &str) -> Option<&mut Box<Node>> {
+        let mut current_node = &mut self.first;
+
+        while let Some(node) = current_node {
+            if let Some(next_node) = &mut node.next {
+                if next_node.data == given_data {
+                    return Some(node);
+                }
+            }
+            current_node = &mut node.next;
+        }
+        None
+    }
+
     fn append(&mut self, data: &str) {
         let new_node = Box::new(Node::new(data.to_string()));
-
-        if self.is_empty() {
-            self.first = Some(new_node);
-        } else {
-            let mut current = &mut self.first;
-
-            while let Some(node) = current {
-                if node.next.is_none() {
-                    node.next = Some(new_node);
-                    return;
-                }
-
-                current = &mut node.next;
+        let last_node = self.find_last_node();
+        match last_node {
+            Some(node) => {
+                node.next = Some(new_node);
+            }
+            None => {
+                self.first = Some(new_node);
             }
         }
     }
@@ -61,23 +108,20 @@ impl SinglyLinkedList {
     }
 
     fn insert_after_given(&mut self, data: &str, given_data: &str) {
-        if self.first.is_none() {
+        if self.is_empty() {
             panic!("List is empty, this action is not possible.");
         }
-        let mut current_node = &mut self.first;
 
-        while let Some(node) = current_node {
-            if node.data == given_data {
-                let new_node = Some(
-                    Box::new(Node::new_with_next(data.to_string(), node.next.take()))
-                );
-                node.next = new_node;
-                return; // Return early after inserting the new node
+        let node_with_data = &mut self.find_node(given_data);
+        match node_with_data {
+            Some(node) => {
+                let new_node = Box::new(Node::new_with_next(data.to_string(), node.next.take()));
+                node.next = Some(new_node);
             }
-            current_node = &mut node.next;
+            None => {
+                panic!("Given node '{}' not found in the list!", given_data);
+            }
         }
-
-        panic!("Given node '{}' not found in the list!", given_data);
     }
 
     fn insert_before_given(&mut self, data: &str, given_data: &str) {
@@ -85,22 +129,16 @@ impl SinglyLinkedList {
             panic!("List is empty, this action is not possible.");
         }
 
-        let mut current_node = &mut self.first;
-
-        while let Some(node) = current_node {
-            if let Some(next_node) = &mut node.next {
-                if next_node.data == given_data {
-                    let new_node = Box::new(
-                        Node::new_with_next(data.to_string(), Some(next_node.clone()))
-                    );
-                    node.next = Some(new_node);
-                    return; // Return early after inserting the new node
-                }
+        let node_before = self.find_previous_node(given_data);
+        match node_before {
+            Some(node) => {
+                let new_node = Box::new(Node::new_with_next(data.to_string(), node.next.clone()));
+                node.next = Some(new_node);
             }
-            current_node = &mut node.next;
+            None => {
+                panic!("Given node '{}' not found in the list!", given_data);
+            }
         }
-
-        panic!("Given node '{}' not found in the list!", given_data);
     }
 
     fn delete_first(&mut self) {
@@ -112,20 +150,14 @@ impl SinglyLinkedList {
     }
 
     fn delete_last(&mut self) {
-        if self.is_empty() {
-            panic!("Cannot delete the last element from an empty list!");
-        }
-        
-        let mut current_node = &mut self.first;
-
-        while let Some(node) = current_node {
-            if let Some(next_node) = &mut node.next {
-                if next_node.next.is_none() {
-                    node.next = None;
-                    return; // Return early after deleting the node
-                }
+        let last_node = self.find_before_last();
+        match last_node {
+            Some(node) => {
+                node.next = None;
             }
-            current_node = &mut node.next;
+            None => {
+                panic!("Cannot delete the last element from an empty list!");
+            }
         }
     }
 }
@@ -308,6 +340,175 @@ mod tests {
     }
 
     #[test]
+    fn find_last_node_in_empty_list() {
+        let mut empty_list = SinglyLinkedList::new();
+        let result = empty_list.find_last_node();
+        assert_eq!(result, None)
+    }
+
+    #[test]
+    fn find_last_node_when_list_has_single_node() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+
+        let result = list.find_last_node();
+
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"A".to_string())
+        );
+    }
+
+    #[test]
+    fn find_last_node_when_multiple_nodes() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+
+        for value in &values {
+            list.append(&value);
+        }
+
+        let result = list.find_last_node();
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"D".to_string())
+        );
+    }
+
+    #[test]
+    fn find_before_last_when_empty_list() {
+        let mut empty_list = SinglyLinkedList::new();
+
+        let result = empty_list.find_before_last();
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_before_last_when_single_node() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+
+        let result = list.find_before_last();
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_before_last_when_multiple_nodes() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        let result = list.find_before_last();
+
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"C".to_string())
+        );
+    }
+
+    #[test]
+    fn find_node_when_empty_list() {
+        let mut empty_list = SinglyLinkedList::new();
+
+        let result = empty_list.find_node("A");
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_node_when_single_node_in_list() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+
+        let result = list.find_node("A");
+
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"A".to_string())
+        );
+    }
+
+    #[test]
+    fn find_node_when_single_node_but_given_node_not_found() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        let result = list.find_node("Z");
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_node_when_multiple_nodes_and_given_data_found() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+        let result = list.find_node("C");
+
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"C".to_string())
+        );
+    }
+
+    #[test]
+    fn find_previous_node_when_empty_list() {
+        let mut empty_list = SinglyLinkedList::new();
+
+        let result = empty_list.find_previous_node("A");
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_previous_node_when_single_node_in_list() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+
+        let result = list.find_previous_node("A");
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn find_precious_node_when_multiple_nodes_in_list() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        let result = list.find_previous_node("C");
+
+        assert_eq!(
+            result.map(|node| &node.data),
+            Some(&"B".to_string())
+        );
+    }
+
+    #[test]
+    fn find_previous_node_when_multiple_nodes_data_not_found() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        let result = list.find_previous_node("Z");
+
+        assert_eq!(result, None);
+    }
+
+    #[test]
     #[should_panic(expected = "Cannot delete the first element from an empty list!")]
     fn delete_first_when_empty_list_panics() {
         let mut empty_list = SinglyLinkedList::new();
@@ -347,6 +548,8 @@ mod tests {
         list.delete_last();
 
         let expected_data = vec!["A", "B"];
+
+        println!("### List : {:?}", list);
 
         assert_list_contains_data!(&list, &expected_data);
     }
