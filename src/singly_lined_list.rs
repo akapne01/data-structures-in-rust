@@ -1,5 +1,6 @@
 // Implement Singly Linked List from scratch
-// Moved from https://github.com/akapne01/rust_crash_course/blob/main/src/linked_list.rs
+
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Node {
@@ -180,6 +181,20 @@ impl SinglyLinkedList {
                 panic!("Node with given data not found!");
             }
         }
+    }
+}
+
+impl fmt::Display for SinglyLinkedList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut current = &self.first;
+
+        // Iterate over the nodes and format their data
+        while let Some(node) = current {
+            write!(f, "{} -> ", node.data)?;
+            current = &node.next;
+        }
+
+        Ok(())
     }
 }
 
@@ -619,5 +634,31 @@ mod tests {
         let expected_data = vec!["A", "B", "D"];
 
         assert_list_contains_data!(&list, &expected_data);
+    }
+
+    #[test]
+    fn test_display_empty_list() {
+        let empty_list = SinglyLinkedList::new();
+
+        assert_eq!(format!("{}", empty_list), "");
+    }
+
+    #[test]
+    fn display_linked_list_with_single_node() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+
+        assert_eq!(format!("{}", list), "A -> ")
+    }
+
+    #[test]
+    fn display_linked_list_multiple_nodes() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        assert_eq!(format!("{}", list), "A -> B -> C -> D -> ");
     }
 }
