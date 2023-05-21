@@ -1,3 +1,4 @@
+mod singly_lined_list;
 fn main() {
-    println!("Hello, world!");
+    singly_lined_list::run();
 }
