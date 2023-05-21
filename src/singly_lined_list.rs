@@ -160,6 +160,27 @@ impl SinglyLinkedList {
             }
         }
     }
+
+    fn delete_node_with_data(&mut self, data: &str) {
+        let data_node = self.find_node(data);
+        match data_node {
+            Some(node) => {
+                let reference = node.next.take();
+                let previous_node = self.find_previous_node(data);
+                match previous_node {
+                    Some(previous) => {
+                        previous.next = reference;
+                    }
+                    None => {
+                        self.first = None;
+                    }
+                }
+            }
+            None => {
+                panic!("Node with given data not found!");
+            }
+        }
+    }
 }
 
 pub fn run() {
@@ -550,6 +571,52 @@ mod tests {
         let expected_data = vec!["A", "B"];
 
         println!("### List : {:?}", list);
+
+        assert_list_contains_data!(&list, &expected_data);
+    }
+
+    #[test]
+    #[should_panic(expected = "Node with given data not found!")]
+    fn delete_node_with_data_when_empty_list() {
+        let mut empty_list = SinglyLinkedList::new();
+
+        empty_list.delete_node_with_data("A");
+    }
+
+    #[test]
+    #[should_panic(expected = "Node with given data not found!")]
+    fn delete_node_with_data_when_nodes_present_but_data_not_found() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        list.delete_node_with_data("Z");
+    }
+
+    #[test]
+    fn delete_node_with_data_when_single_node_and_data_found() {
+        let mut list = SinglyLinkedList::new();
+        list.append("A");
+        list.delete_node_with_data("A");
+
+        println!("### List Looks like this: {:?}", list);
+
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn delete_node_with_data_when_multiple_nodes_and_node_present() {
+        let values = vec!["A", "B", "C", "D"];
+        let mut list = SinglyLinkedList::new();
+        for value in &values {
+            list.append(&value);
+        }
+
+        list.delete_node_with_data("C");
+
+        let expected_data = vec!["A", "B", "D"];
 
         assert_list_contains_data!(&list, &expected_data);
     }
