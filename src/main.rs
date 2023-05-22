@@ -1,4 +1,4 @@
-mod singly_lined_list;
+mod singly_linked_list;
 fn main() {
-    singly_lined_list::run();
+    singly_linked_list::run();
 }
