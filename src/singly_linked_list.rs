@@ -3,9 +3,9 @@
 use std::fmt::{ self, Debug };
 
 #[derive(Debug, PartialEq)]
-struct Node<T> where T: Clone {
-    data: T,
-    next: Option<Box<Node<T>>>,
+pub struct Node<T> where T: Clone {
+    pub data: T,
+    pub next: Option<Box<Node<T>>>,
 }
 impl<T: Clone> Clone for Node<T> {
     fn clone(&self) -> Self {
@@ -30,26 +30,26 @@ impl<T: Clone> Node<T> {
     }
 }
 
-#[derive(Debug, PartialEq)]
-struct SinglyLinkedList<T: Clone> {
-    first: Option<Box<Node<T>>>,
+#[derive(Debug, PartialEq, Clone)]
+pub struct SinglyLinkedList<T: Clone> {
+    pub first: Option<Box<Node<T>>>,
 }
 
 #[allow(dead_code)]
 impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         SinglyLinkedList { first: None }
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.first.is_none()
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.first = None;
     }
 
-    fn find_last_node(&mut self) -> Option<&mut Box<Node<T>>> {
+    pub fn find_last_node(&mut self) -> Option<&mut Box<Node<T>>> {
         let mut current = &mut self.first;
 
         while let Some(node) = current {
@@ -62,7 +62,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         None
     }
 
-    fn find_before_last(&mut self) -> Option<&mut Box<Node<T>>> {
+    pub fn find_before_last(&mut self) -> Option<&mut Box<Node<T>>> {
         let mut current_node = &mut self.first;
 
         while let Some(node) = current_node {
@@ -76,7 +76,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         None
     }
 
-    fn find_node(&mut self, given_data: &T) -> Option<&mut Box<Node<T>>> {
+    pub fn find_node(&mut self, given_data: &T) -> Option<&mut Box<Node<T>>> {
         let mut current_node = &mut self.first;
 
         while let Some(node) = current_node {
@@ -88,7 +88,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         None
     }
 
-    fn find_previous_node(&mut self, given_data: &T) -> Option<&mut Box<Node<T>>> {
+    pub fn find_previous_node(&mut self, given_data: &T) -> Option<&mut Box<Node<T>>> {
         let mut current_node = &mut self.first;
 
         while let Some(node) = current_node {
@@ -102,7 +102,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         None
     }
 
-    fn append(&mut self, data: T) {
+    pub fn append(&mut self, data: T) {
         let new_node = Box::new(Node::new(data));
         let last_node = self.find_last_node();
         match last_node {
@@ -115,12 +115,12 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         }
     }
 
-    fn prepend(&mut self, data: T) {
+    pub fn prepend(&mut self, data: T) {
         let new_node = Box::new(Node::new_with_next(data, self.first.take()));
         self.first = Some(new_node);
     }
 
-    fn insert_after_given(&mut self, data: T, given_data: T) {
+    pub fn insert_after_given(&mut self, data: T, given_data: T) {
         if self.is_empty() {
             panic!("List is empty, this action is not possible.");
         }
@@ -137,7 +137,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         }
     }
 
-    fn insert_before_given(&mut self, data: T, given_data: T) {
+    pub fn insert_before_given(&mut self, data: T, given_data: T) {
         if self.is_empty() {
             panic!("List is empty, this action is not possible.");
         }
@@ -154,7 +154,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         }
     }
 
-    fn delete_first(&mut self) {
+    pub fn delete_first(&mut self) {
         if self.is_empty() {
             panic!("Cannot delete the first element from an empty list!");
         }
@@ -162,7 +162,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         self.first = new_first;
     }
 
-    fn delete_last(&mut self) {
+    pub fn delete_last(&mut self) {
         let last_node = self.find_before_last();
         match last_node {
             Some(node) => {
@@ -174,7 +174,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         }
     }
 
-    fn delete_node_with_data(&mut self, data: T) {
+    pub fn delete_node_with_data(&mut self, data: T) {
         let data_node = self.find_node(&data);
         match data_node {
             Some(node) => {
