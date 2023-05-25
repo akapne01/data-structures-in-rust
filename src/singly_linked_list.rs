@@ -33,12 +33,13 @@ impl<T: Clone> Node<T> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SinglyLinkedList<T: Clone> {
     pub first: Option<Box<Node<T>>>,
+    pub node_count: i32,
 }
 
 #[allow(dead_code)]
 impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
     pub fn new() -> Self {
-        SinglyLinkedList { first: None }
+        SinglyLinkedList { first: None, node_count: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -47,6 +48,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
 
     pub fn clear(&mut self) {
         self.first = None;
+        self.node_count = 0;
     }
 
     pub fn find_last_node(&mut self) -> Option<&mut Box<Node<T>>> {
@@ -113,11 +115,13 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
                 self.first = Some(new_node);
             }
         }
+        self.node_count += 1;
     }
 
     pub fn prepend(&mut self, data: T) {
         let new_node = Box::new(Node::new_with_next(data, self.first.take()));
         self.first = Some(new_node);
+        self.node_count += 1;
     }
 
     pub fn insert_after_given(&mut self, data: T, given_data: T) {
@@ -135,6 +139,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
                 panic!("Given node '{}' not found in the list!", given_data);
             }
         }
+        self.node_count += 1;
     }
 
     pub fn insert_before_given(&mut self, data: T, given_data: T) {
@@ -152,6 +157,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
                 panic!("Given node '{}' not found in the list!", given_data);
             }
         }
+        self.node_count += 1;
     }
 
     pub fn delete_first(&mut self) {
@@ -160,6 +166,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
         }
         let new_first = self.first.take().unwrap().next;
         self.first = new_first;
+        self.node_count -= 1;
     }
 
     pub fn delete_last(&mut self) {
@@ -172,6 +179,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
                 panic!("Cannot delete the last element from an empty list!");
             }
         }
+        self.node_count -= 1;
     }
 
     pub fn delete_node_with_data(&mut self, data: T) {
@@ -193,6 +201,7 @@ impl<T: PartialEq<T> + Debug + Clone + std::fmt::Display> SinglyLinkedList<T> {
                 panic!("Node with given data not found!");
             }
         }
+        self.node_count -= 1;
     }
 }
 
@@ -236,6 +245,7 @@ mod tests {
 
         assert_eq!(list.first, None);
         assert!(list.is_empty());
+        assert_eq!(list.node_count, 0);
     }
 
     #[test]
@@ -251,6 +261,7 @@ mod tests {
             Some(&data)
         );
         assert_eq!(list.first.as_ref().unwrap().next, None);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -275,19 +286,21 @@ mod tests {
             current.map(|node| &node.data),
             None
         );
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
     fn test_prepend_empty_list() {
         let a = "A";
-        let mut actual_list: SinglyLinkedList<&str> = SinglyLinkedList::new();
-        actual_list.prepend(a);
+        let mut list: SinglyLinkedList<&str> = SinglyLinkedList::new();
+        list.prepend(a);
 
         assert_eq!(
-            actual_list.first.as_ref().map(|node| &node.data),
+            list.first.as_ref().map(|node| &node.data),
             Some(&a)
         );
-        assert_eq!(actual_list.first.as_ref().unwrap().next, None);
+        assert_eq!(list.first.as_ref().unwrap().next, None);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -300,6 +313,7 @@ mod tests {
             Some(&"A")
         );
         assert_eq!(list.first.as_ref().unwrap().next, None);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -309,11 +323,8 @@ mod tests {
         list.append(&values[0]);
         list.append(&values[1]);
 
-        let first = list.first.as_ref().map(|node| &node.data);
-        let second = list.first.as_ref().and_then(|node| node.next.as_ref().map(|node| &node.data));
-
-        assert_eq!(first, Some(&values[0]));
-        assert_eq!(second, Some(&values[1]));
+        assert_list_contains_data!(list, &values);
+        assert_eq!(list.node_count, 2);
     }
 
     #[test]
@@ -329,6 +340,7 @@ mod tests {
         let expected_data = vec!["C", "A", "B"];
 
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 3);
     }
 
     #[test]
@@ -341,9 +353,9 @@ mod tests {
     #[test]
     #[should_panic(expected = "Given node 'B' not found in the list!")]
     fn test_insert_after_given_data_not_found_panics() {
-        let mut actual_list: SinglyLinkedList<&str> = SinglyLinkedList::new();
-        actual_list.append("A");
-        actual_list.insert_after_given("C", "B");
+        let mut list: SinglyLinkedList<&str> = SinglyLinkedList::new();
+        list.append("A");
+        list.insert_after_given("C", "B");
     }
 
     #[test]
@@ -357,6 +369,7 @@ mod tests {
         let expected_data = vec!["A", "C", "B"];
 
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 3);
     }
 
     #[test]
@@ -385,13 +398,16 @@ mod tests {
         let expected_data = vec!["A", "C", "B"];
 
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 3);
     }
 
     #[test]
     fn find_last_node_in_empty_list() {
         let mut empty_list: SinglyLinkedList<&str> = SinglyLinkedList::new();
         let result = empty_list.find_last_node();
-        assert_eq!(result, None)
+        assert_eq!(result, None);
+        assert_list_contains_data!(&empty_list, &[]);
+        assert_eq!(empty_list.node_count, 0);
     }
 
     #[test]
@@ -405,6 +421,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"A")
         );
+        assert_list_contains_data!(&list, &["A"]);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -421,6 +439,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"D")
         );
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -430,6 +450,8 @@ mod tests {
         let result = empty_list.find_before_last();
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&empty_list, &[]);
+        assert_eq!(empty_list.node_count, 0);
     }
 
     #[test]
@@ -440,6 +462,8 @@ mod tests {
         let result = list.find_before_last();
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&list, &["A"]);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -456,6 +480,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"C")
         );
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -465,6 +491,8 @@ mod tests {
         let result = empty_list.find_node(&"A");
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&empty_list, &[]);
+        assert_eq!(empty_list.node_count, 0);
     }
 
     #[test]
@@ -478,6 +506,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"A")
         );
+        assert_list_contains_data!(&list, &["A"]);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -491,6 +521,8 @@ mod tests {
         let result = list.find_node(&"Z");
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -506,6 +538,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"C")
         );
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -515,6 +549,8 @@ mod tests {
         let result = empty_list.find_previous_node(&"A");
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&empty_list, &[]);
+        assert_eq!(empty_list.node_count, 0);
     }
 
     #[test]
@@ -525,6 +561,8 @@ mod tests {
         let result = list.find_previous_node(&"A");
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&list, &["A"]);
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -541,6 +579,8 @@ mod tests {
             result.map(|node| &node.data),
             Some(&"B")
         );
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -554,6 +594,8 @@ mod tests {
         let result = list.find_previous_node(&"Z");
 
         assert_eq!(result, None);
+        assert_list_contains_data!(&list, &values);
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -567,15 +609,15 @@ mod tests {
     fn delete_first_when_list_has_elements() {
         let values = vec!["A", "B", "C"];
         let mut list: SinglyLinkedList<&str> = SinglyLinkedList::new();
-        list.append(&values[0]);
-        list.append(&values[1]);
-        list.append(&values[2]);
+        for value in &values {
+            list.append(&value);
+        }
 
         list.delete_first();
 
         let expected_data = vec!["B", "C"];
-
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 2);
     }
 
     #[test]
@@ -589,17 +631,15 @@ mod tests {
     fn delete_last_when_list_has_elements() {
         let values = vec!["A", "B", "C"];
         let mut list: SinglyLinkedList<&str> = SinglyLinkedList::new();
-        list.append(&values[0]);
-        list.append(&values[1]);
-        list.append(&values[2]);
+        for value in &values {
+            list.append(&value);
+        }
 
         list.delete_last();
 
         let expected_data = vec!["A", "B"];
-
-        println!("### List : {:?}", list);
-
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 2);
     }
 
     #[test]
@@ -628,9 +668,9 @@ mod tests {
         list.append("A");
         list.delete_node_with_data("A");
 
-        println!("### List Looks like this: {:?}", list);
-
         assert!(list.is_empty());
+        assert_list_contains_data!(&list, &[]);
+        assert_eq!(list.node_count, 0);
     }
 
     #[test]
@@ -646,6 +686,7 @@ mod tests {
         let expected_data = vec!["A", "B", "D"];
 
         assert_list_contains_data!(&list, &expected_data);
+        assert_eq!(list.node_count, 3);
     }
 
     #[test]
@@ -653,6 +694,7 @@ mod tests {
         let empty_list: SinglyLinkedList<&str> = SinglyLinkedList::new();
 
         assert_eq!(format!("{}", empty_list), "");
+        assert_eq!(empty_list.node_count, 0);
     }
 
     #[test]
@@ -660,7 +702,8 @@ mod tests {
         let mut list: SinglyLinkedList<&str> = SinglyLinkedList::new();
         list.append("A");
 
-        assert_eq!(format!("{}", list), "A -> ")
+        assert_eq!(format!("{}", list), "A -> ");
+        assert_eq!(list.node_count, 1);
     }
 
     #[test]
@@ -672,6 +715,7 @@ mod tests {
         }
 
         assert_eq!(format!("{}", list), "A -> B -> C -> D -> ");
+        assert_eq!(list.node_count, 4);
     }
 
     #[test]
@@ -685,5 +729,6 @@ mod tests {
         list.clear();
 
         assert!(list.is_empty());
+        assert_eq!(list.node_count, 0);
     }
 }
