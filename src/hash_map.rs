@@ -115,17 +115,12 @@ mod tests {
 
         fn build_expected_array(
             &mut self,
-            values: &Vec<(K, V)>
+            expected_values: &Vec<(K, V)>
         ) -> [Option<LinkedList<(K, V)>>; DEFAULT_MAX_SIZE] {
-            for (key, value) in values {
+            for (key, value) in expected_values {
                 let index = self.get_index(key.clone());
-                if let Some(list) = &mut self.expected[index] {
-                    list.push_back((key.clone(), value.clone()));
-                } else {
-                    let mut linked_list = LinkedList::new();
-                    linked_list.push_back((key.clone(), value.clone()));
-                    self.expected[index] = Some(linked_list);
-                }
+                let list = self.expected[index].get_or_insert_with(LinkedList::new);
+                list.push_back((key.clone(), value.clone()));
             }
             self.expected.clone()
         }
@@ -157,7 +152,7 @@ mod tests {
         let result = map.insert(values[0].0, values[0].1);
 
         assert!(result.is_none(), "Result is none, because Key didn't exist");
-        assert_eq!(&map.array, &expected_array);
+        assert_eq!(map.array, expected_array);
         assert_eq!(map.current_size, 1);
     }
 
@@ -168,11 +163,11 @@ mod tests {
         let expected_array = test_builder.build_expected_array(&values);
         let mut map: HashMap<&str, &str> = HashMap::new();
 
-        for (key, value) in values.iter() {
+        for &(key, value) in &values {
             assert_eq!(map.insert(key, value), None);
         }
 
-        assert_eq!(&map.array, &expected_array);
+        assert_eq!(map.array, expected_array);
         assert_eq!(map.current_size, 4);
     }
 
@@ -190,7 +185,7 @@ mod tests {
 
         assert_eq!(result_1, None, "Puting Key first time returns None");
         assert_eq!(result_2, Some(old_value), "When key present, existing value returned");
-        assert_eq!(&map.array, &expected_array);
+        assert_eq!(map.array, expected_array);
         assert_eq!(map.current_size, 1);
     }
 
@@ -205,14 +200,14 @@ mod tests {
         let map: HashMap<&str, &str> = HashMapTestBuilder::new_map_with_values(&values);
 
         assert_eq!(
-            &map.get_index(&values[1].0),
-            &map.get_index(&values[2].0),
+            map.get_index(&values[1].0),
+            map.get_index(&values[2].0),
             "Keys K and Q map to the same index."
         );
 
         let mut test_builder = HashMapTestBuilder::new();
         let expected = test_builder.build_expected_array(&values);
-        assert_eq!(&expected, &map.array);
+        assert_eq!(expected, map.array);
         assert_eq!(map.current_size, 4);
     }
 
@@ -360,7 +355,7 @@ mod tests {
         }
 
         assert_eq!(map.current_size, 4);
-        assert_eq!(&map.array, &expected_array);
+        assert_eq!(map.array, expected_array);
     }
 
     #[test]
