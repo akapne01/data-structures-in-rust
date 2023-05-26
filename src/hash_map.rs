@@ -7,6 +7,23 @@ use std::collections::LinkedList;
 use crate::hasher_trait::KeyToIndexHasherTrait;
 use crate::hasher_trait::DEFAULT_MAX_SIZE;
 
+fn find_index_linked_list<K, V>(list: &LinkedList<(K, V)>, key: &K) -> Option<usize>
+    where K: PartialEq
+{
+    let mut current = list.iter();
+    let mut index = 0;
+
+    while let Some((k, _)) = current.next() {
+        if k == key {
+            return Some(index);
+        }
+
+        index += 1;
+    }
+
+    None
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct HashMap<K, V> {
@@ -32,6 +49,8 @@ impl<K: Hash + Clone + PartialEq + Debug, V: Clone + Debug> HashMap<K, V> {
         }
     }
 
+    // Inserts key and value pair in the hashmap. If key didn't exist, returns None
+    // If key is present, returns the old value and updates stored value to the new value.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let index = self.get_index(key.clone());
         if let Some(list) = &mut self.array[index] {
@@ -70,8 +89,31 @@ impl<K: Hash + Clone + PartialEq + Debug, V: Clone + Debug> HashMap<K, V> {
 
     // Removes the key-value pair from the map for a given key.
     // Returns the value is the key existed, None otherwise.
-    pub fn remove(&self, key: K) -> Option<V> {
-        todo!()
+    // To remove we need to know index
+    pub fn remove(&mut self, key: K) -> Option<V> {
+        let mut return_value = None;
+        let index = self.get_index(key.clone());
+        if let Some(list) = &mut self.array[index] {
+            if let Some(node) = list.iter().find(|(k, _v)| *k == key) {
+                return_value = Some(node.1.clone());
+            }
+            let remove_data_at_index = find_index_linked_list(list, &key);
+            if remove_data_at_index.is_some() {
+                // There is an issue to remove data from linked list in GitHub,
+                // implemented suggested workaround to split list, and unite again.
+                // https://github.com/rust-lang/rust/issues/69210#issuecomment-647864685
+                let index_to_remove = remove_data_at_index.unwrap();
+                if index_to_remove != 0 {
+                    let mut split_list = list.split_off(index_to_remove);
+                    split_list.pop_front();
+                    list.append(&mut split_list);
+                } else {
+                    self.array[index] = None;
+                }
+                self.current_size -= 1;
+            }
+        }
+        return_value
     }
 
     // Clears the hashmap.
@@ -292,5 +334,117 @@ mod tests {
             assert!(result.is_some());
             assert_eq!(result, Some(value));
         }
+    }
+
+    #[test]
+    fn test_remove_when_one_node_added_key_not_found() {
+        let values = vec![("A", "Value A")];
+        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+
+        let result = map.remove("Z");
+
+        assert!(result.is_none());
+        assert_eq!(map.current_size, 1);
+    }
+
+    #[test]
+    fn test_remove_when_one_node_added_key_present() {
+        let values = vec![("A", "Value A")];
+        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+
+        let result = map.remove("A");
+
+        assert!(result.is_some());
+        assert_eq!(result, Some("Value A"));
+        assert_eq!(map.current_size, 0);
+    }
+
+    #[test]
+    fn test_remove_when_multiple_nodes() {
+        let values = vec![
+            ("A", "Value A"),
+            ("B", "Value B"),
+            ("C", "Value C"),
+            ("D", "Value D"),
+            ("E", "Value E"),
+            ("F", "Value F"),
+            ("G", "Value G"),
+            ("H", "Value H"),
+            ("I", "Value I")
+        ];
+        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+        let keys_to_remove = vec![
+            ("A", "Value A"),
+            ("C", "Value C"),
+            ("D", "Value D"),
+            ("F", "Value F"),
+            ("H", "Value H")
+        ];
+        let expected_values = vec![
+            ("B", "Value B"),
+            ("E", "Value E"),
+            ("G", "Value G"),
+            ("I", "Value I")
+        ];
+        let expected_array = HashMapTestBuilder::new().build_expected_array(&expected_values);
+
+        for (key, value) in keys_to_remove {
+            let result = map.remove(key);
+            assert!(result.is_some());
+            assert_eq!(result, Some(value), "Remove returns value that key had");
+        }
+
+        assert_eq!(map.current_size, 4);
+        assert_eq!(&map.array, &expected_array);
+    }
+
+    #[test]
+    fn test_remove_when_two_differnt_keys_map_to_same_index() {
+        let values = vec![
+            ("A", "Value A"),
+            ("B", "Value B"),
+            ("C", "Value C"),
+            ("K", "Value K"),
+            ("Q", "Value Q")
+        ];
+        let values_to_remove = vec![("A", "Value A"), ("Q", "Value Q"), ("K", "Value K")];
+        let mut map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let expected_values = vec![("B", "Value B"), ("C", "Value C")];
+        let expected_array = HashMapTestBuilder::new().build_expected_array(&expected_values);
+        assert_eq!(
+            map.get_index(values[3].0),
+            map.get_index(values[4].0),
+            "Keys K and Q map to the same index."
+        );
+
+        for (key, value) in values_to_remove {
+            let result = map.remove(key);
+            assert!(result.is_some());
+            assert_eq!(result, Some(value));
+        }
+
+        assert_eq!(map.array, expected_array);
+        assert_eq!(map.current_size, 2);
+    }
+
+    #[test]
+    fn test_remove_when_all_values_removed() {
+        let values = vec![
+            ("A", "Value A"),
+            ("B", "Value B"),
+            ("C", "Value C"),
+            ("D", "Value D"),
+            ("E", "Value E")
+        ];
+        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+
+        for &(key, value) in &values {
+            let result = map.remove(key);
+            assert!(result.is_some());
+            assert_eq!(result, Some(value));
+        }
+
+        assert!(map.is_empty());
+        assert_eq!(map.current_size, 0);
     }
 }
