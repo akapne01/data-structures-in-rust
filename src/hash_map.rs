@@ -1,4 +1,4 @@
-// Implement Hash Map from scratch using Singly Linked List
+// Implement Hash Map from scratch using built in Linked List
 // to avoid collisions.
 
 use std::{ hash::Hash, fmt::Debug };
@@ -6,23 +6,6 @@ use std::collections::LinkedList;
 
 use crate::hasher_trait::KeyToIndexHasherTrait;
 use crate::hasher_trait::DEFAULT_MAX_SIZE;
-
-fn find_index_linked_list<K, V>(list: &LinkedList<(K, V)>, key: &K) -> Option<usize>
-    where K: PartialEq
-{
-    let mut current = list.iter();
-    let mut index = 0;
-
-    while let Some((k, _)) = current.next() {
-        if k == key {
-            return Some(index);
-        }
-
-        index += 1;
-    }
-
-    None
-}
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
@@ -49,74 +32,55 @@ impl<K: Hash + Clone + PartialEq + Debug, V: Clone + Debug> HashMap<K, V> {
         }
     }
 
-    // Inserts key and value pair in the hashmap. If key didn't exist, returns None
-    // If key is present, returns the old value and updates stored value to the new value.
+    /// Inserts key and value pair in the hashmap. If key didn't exist, returns None
+    /// If key is present, returns the old value and updates stored value to the new value.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let index = self.get_index(key.clone());
-        if let Some(list) = &mut self.array[index] {
-            if let Some(node) = list.iter_mut().find(|(k, _v)| *k == key) {
-                let old_value = Some(node.1.clone());
-                *node = (key, value);
-                return old_value;
-            } else {
-                list.push_back((key, value));
-            }
-        } else {
-            let mut list = LinkedList::new();
-            list.push_back((key, value));
-            self.array[index] = Some(list);
+        let list = self.array[index].get_or_insert_with(LinkedList::new);
+        if let Some(node) = list.iter_mut().find(|(k, _v)| *k == key) {
+            return Some(std::mem::replace(&mut node.1, value));
         }
+        list.push_back((key, value));
         self.current_size += 1;
         None
     }
 
-    // Gets value for a given key. Returns the value if it exists,
-    // or None otherwise.
+    /// Gets value for a given key. If key exists, value is returned.
+    /// If key doesn't exist, returns None
     pub fn get(&self, key: K) -> Option<V> {
         let index = self.get_index(key.clone());
-        let list_with_value = &self.array[index];
-        match list_with_value {
-            Some(list) => {
-                if let Some(node) = list.iter().find(|(k, _v)| *k == key) {
-                    return Some(node.1.clone());
-                } else {
-                    None
-                }
-            }
-            None => { None }
-        }
+        self.array[index]
+            .as_ref()
+            .and_then(|list| list.iter().find(|(k, _v)| *k == key))
+            .map(|node| node.1.clone())
     }
 
-    // Removes the key-value pair from the map for a given key.
-    // Returns the value is the key existed, None otherwise.
-    // To remove we need to know index
+    /// Removes the key-value pair from the map for a given key.
+    /// Returns the value is the key existed, None otherwise.
     pub fn remove(&mut self, key: K) -> Option<V> {
-        let mut return_value = None;
         let index = self.get_index(key.clone());
+
         if let Some(list) = &mut self.array[index] {
-            if let Some(node) = list.iter().find(|(k, _v)| *k == key) {
-                return_value = Some(node.1.clone());
-            }
-            let remove_data_at_index = find_index_linked_list(list, &key);
-            if remove_data_at_index.is_some() {
-                // There is an issue to remove data from linked list in GitHub,
-                // implemented suggested workaround to split list, and unite again.
-                // https://github.com/rust-lang/rust/issues/69210#issuecomment-647864685
-                let index_to_remove = remove_data_at_index.unwrap();
-                if index_to_remove != 0 {
-                    let mut split_list = list.split_off(index_to_remove);
+            if let Some(node_index) = list.iter().position(|(k, _v)| *k == key) {
+                let mut iter = list.iter_mut();
+                let return_value = iter.nth(node_index).map(|node| node.1.clone());
+                iter.next();
+
+                if node_index != 0 {
+                    let mut split_list = list.split_off(node_index);
                     split_list.pop_front();
                     list.append(&mut split_list);
                 } else {
                     self.array[index] = None;
                 }
                 self.current_size -= 1;
+                return return_value;
             }
         }
-        return_value
+        None
     }
 
-    // Clears the hashmap.
+    /// Clears data in the hashmap.
     pub fn clear(&mut self) {
         self.array = [Self::INIT; DEFAULT_MAX_SIZE];
         self.current_size = 0;
