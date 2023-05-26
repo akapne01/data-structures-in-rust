@@ -31,11 +31,7 @@ impl<T> Stack<T> {
     /// Return the top of the stack, but doesn't remove it
     /// from the stack
     fn peek(&self) -> Option<&T> {
-        if self.pointer_to_top.is_negative() {
-            return None;
-        } else {
-            self.data.get(self.pointer_to_top as usize)
-        }
+        self.data.last()
     }
 
     /// Remove the top item from the stack
