@@ -118,7 +118,8 @@ impl<K: Hash + Clone + PartialEq + Debug, V: Clone + Debug> HashMap<K, V> {
 
     // Clears the hashmap.
     pub fn clear(&mut self) {
-        todo!()
+        self.array = [Self::INIT; DEFAULT_MAX_SIZE];
+        self.current_size = 0;
     }
 }
 pub fn run() {
@@ -165,7 +166,7 @@ mod tests {
             self.expected.clone()
         }
 
-        fn new_map_with_values_set(values: &Vec<(K, V)>) -> HashMap<K, V> {
+        fn new_map_with_values(values: &Vec<(K, V)>) -> HashMap<K, V> {
             let mut map: HashMap<K, V> = HashMap::new();
             for (key, value) in values {
                 map.insert(key.clone(), value.clone());
@@ -237,7 +238,7 @@ mod tests {
             ("Q", "Value for Q"),
             ("Z", "Value for Z")
         ];
-        let map: HashMap<&str, &str> = HashMapTestBuilder::new_map_with_values_set(&values);
+        let map: HashMap<&str, &str> = HashMapTestBuilder::new_map_with_values(&values);
 
         assert_eq!(
             &map.get_index(&values[1].0),
@@ -265,7 +266,7 @@ mod tests {
     #[test]
     fn test_get_when_one_node_value_returned() {
         let values = vec![("Key A", "Value A")];
-        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values(&values);
 
         let result = map.get(values[0].0);
 
@@ -277,7 +278,7 @@ mod tests {
     #[test]
     fn test_get_with_multiple_nodes() {
         let values = vec![("A", "Value A"), ("B", "Value B"), ("C", "Value C"), ("D", "Value D")];
-        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values(&values);
 
         for (key, value) in values {
             let result = map.get(key);
@@ -295,7 +296,7 @@ mod tests {
             ("D", "Value D"),
             ("A", "New Value A")
         ];
-        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values(&values);
 
         let expected_values = vec![
             ("A", "New Value A"),
@@ -321,7 +322,7 @@ mod tests {
             ("K", "Value K"),
             ("Q", "Value Q")
         ];
-        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let map = HashMapTestBuilder::<&str, &str>::new_map_with_values(&values);
 
         assert_eq!(
             map.get_index(values[3].0),
@@ -339,7 +340,7 @@ mod tests {
     #[test]
     fn test_remove_when_one_node_added_key_not_found() {
         let values = vec![("A", "Value A")];
-        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+        let mut map = HashMapTestBuilder::new_map_with_values(&values);
 
         let result = map.remove("Z");
 
@@ -350,7 +351,7 @@ mod tests {
     #[test]
     fn test_remove_when_one_node_added_key_present() {
         let values = vec![("A", "Value A")];
-        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+        let mut map = HashMapTestBuilder::new_map_with_values(&values);
 
         let result = map.remove("A");
 
@@ -372,7 +373,7 @@ mod tests {
             ("H", "Value H"),
             ("I", "Value I")
         ];
-        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+        let mut map = HashMapTestBuilder::new_map_with_values(&values);
         let keys_to_remove = vec![
             ("A", "Value A"),
             ("C", "Value C"),
@@ -408,7 +409,7 @@ mod tests {
             ("Q", "Value Q")
         ];
         let values_to_remove = vec![("A", "Value A"), ("Q", "Value Q"), ("K", "Value K")];
-        let mut map = HashMapTestBuilder::<&str, &str>::new_map_with_values_set(&values);
+        let mut map = HashMapTestBuilder::<&str, &str>::new_map_with_values(&values);
         let expected_values = vec![("B", "Value B"), ("C", "Value C")];
         let expected_array = HashMapTestBuilder::new().build_expected_array(&expected_values);
         assert_eq!(
@@ -436,7 +437,7 @@ mod tests {
             ("D", "Value D"),
             ("E", "Value E")
         ];
-        let mut map = HashMapTestBuilder::new_map_with_values_set(&values);
+        let mut map = HashMapTestBuilder::new_map_with_values(&values);
 
         for &(key, value) in &values {
             let result = map.remove(key);
@@ -446,5 +447,35 @@ mod tests {
 
         assert!(map.is_empty());
         assert_eq!(map.current_size, 0);
+    }
+
+    #[test]
+    fn test_clear_hashmap_when_empty() {
+        let mut empty_map = HashMap::<&str, &str>::new();
+
+        empty_map.clear();
+
+        assert!(empty_map.is_empty());
+        assert_eq!(empty_map.current_size, 0);
+    }
+
+    #[test]
+    fn test_clear_hashmap_when_multiple_items() {
+        let values = vec![
+            ("A", "Value A"),
+            ("B", "Value B"),
+            ("C", "Value C"),
+            ("Q", "Value Q"),
+            ("K", "Value K")
+        ];
+        let mut map = HashMapTestBuilder::new_map_with_values(&values);
+
+        map.clear();
+
+        assert!(map.is_empty());
+        assert_eq!(map.current_size, 0);
+        for value in &map.array {
+            assert!(value.is_none());
+        }
     }
 }
