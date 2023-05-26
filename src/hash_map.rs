@@ -47,6 +47,7 @@ impl<K: Hash + Clone + PartialEq + Debug, V: Clone + Debug> HashMap<K, V> {
             list.push_back((key, value));
             self.array[index] = Some(list);
         }
+        self.current_size += 1;
         None
     }
 
@@ -129,6 +130,7 @@ mod tests {
 
         assert!(result.is_none(), "Result is none, because Key didn't exist");
         assert!(map.array.contains(&Some(expected)));
+        assert_eq!(map.current_size, 1);
     }
 
     #[test]
@@ -145,6 +147,7 @@ mod tests {
             expected.push_back((key, value));
             assert!(map.array.contains(&Some(expected)));
         }
+        assert_eq!(map.current_size, 4);
     }
 
     #[test]
@@ -163,6 +166,7 @@ mod tests {
         assert_eq!(result_1, None, "Puting Key first time returns None");
         assert_eq!(result_2, Some(old_value), "When key present, existing value returned");
         assert!(map.array.contains(&Some(expected_list)), "Key value is updated to new value");
+        assert_eq!(map.current_size, 1);
     }
 
     #[test]
@@ -187,5 +191,6 @@ mod tests {
         let mut test_builder = TestBuilder::new();
         let expected = test_builder.build_expected_array(&values);
         assert_eq!(expected, &map.array);
+        assert_eq!(map.current_size, 4);
     }
 }
